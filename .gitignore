@@ -1,0 +1,46 @@
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+.env.*
+frontend/.env
+frontend/.env.*
+
+# Ignore environment files
+*.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Debug
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Optional cache folders
+.cache/
+dist/
+build/
+coverage/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Optional if you're using nodemon
+nodemon.json
+
+# TypeScript build (if using TypeScript later)
+*.tsbuildinfo
