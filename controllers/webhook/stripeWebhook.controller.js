@@ -4,7 +4,6 @@ import stripe from "../../config/stripe.js";
 
 export const handleStripeWebhook = async (req, res) => {
   try {
-    console.log("Stripe WeebHook HItted")
     
     const sig = req.headers["stripe-signature"];
     let event;
@@ -14,8 +13,6 @@ export const handleStripeWebhook = async (req, res) => {
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
-
-console.log("Event in hook:", event)
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
@@ -78,33 +75,3 @@ console.log("Event in hook:", event)
   }
 };
 
-
-// export const handleStripeWebhook = async (req, res) => {
-//   try {
-//     console.log("Stripe Webhook Hitted");
-
-//     const sig = req.headers["stripe-signature"];
-//     let event;
-
-//     if (process.env.NODE_ENV === "development" && !sig) {
-//       // 👉 Skip signature check in dev mode (Postman testing)
-//       event = req.body; 
-//       console.log("⚠️ Dev mode: Skipping Stripe signature verification");
-//     } else {
-//       // Normal Stripe signature verification
-//       event = stripe.webhooks.constructEvent(
-//         req.body,
-//         sig,
-//         process.env.STRIPE_WEBHOOK_SECRET
-//       );
-//     }
-
-//     console.log("Event in hook:", event);
-
-//     // … rest of your business logic …
-//     res.json({ received: true });
-//   } catch (err) {
-//     console.error("Stripe webhook error:", err);
-//     res.status(400).send(`Webhook Error: ${err.message}`);
-//   }
-// };

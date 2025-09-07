@@ -40,7 +40,7 @@ export const register = async (req, res) => {
         });
         
 
-        // await sendMail(email, otp);
+        await sendMail(email, otp);
         res.status(201).json({ message: "An OTP has been sent to your email address. Please verify to continue.",
            id: user._id, 
            email: user.email 
