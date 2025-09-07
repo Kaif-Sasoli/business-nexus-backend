@@ -32,6 +32,7 @@ export const sendMessage = async (req, res) => {
       content: newMessage.content,
       isRead: newMessage.isRead,
       timestamp: newMessage.createdAt.toISOString(),
+      createdAt: newMessage.createdAt.toISOString(),
     };
 
     // Emit to receiver if online
@@ -105,7 +106,7 @@ export const getChatConversations = async (req, res) => {
 
         // Fetch partner user info
         const partner = await userModel.findById(partnerObjectId).select(
-          "name avatar role"
+          "name avatar role isOnline"
         );
         
        return {
@@ -116,6 +117,7 @@ export const getChatConversations = async (req, res) => {
             name: partner.name,
             avatarUrl: partner.avatar,
             role: partner.role,
+            isOnline: partner.isOnline
           },
           lastMessage: conv.lastMessage,
           updatedAt: conv.updatedAt,
@@ -218,6 +220,7 @@ export const getMessagesBetweenUsers = async (req, res) => {
       content: m.content,
       isRead: m.isRead,
       timestamp: m.createdAt,
+      createdAt: m.createdAt
     }));
 
     const normalizedPartner = {

@@ -39,15 +39,16 @@ export default function videoHandlers(io, socket, onlineUsers) {
     if (toSocketId) io.to(toSocketId).emit("webrtc:ice", { fromUserId, candidate });
   });
 
-  // End call (✅ notify BOTH peers)
+  // End call
   socket.on("call:end", ({ toUserId, fromUserId }) => {
-    const toSocketId = onlineUsers.get(String(toUserId));
+  const toSocketId = onlineUsers.get(String(toUserId));
 
-    if (toSocketId) {
-      io.to(toSocketId).emit("call:ended", { fromUserId });
-    }
+  // Notify the peer
+  if (toSocketId) {
+    io.to(toSocketId).emit("call:ended", { fromUserId });
+  }
 
-    // Also notify sender so they clean up too
-    socket.emit("call:ended", { fromUserId, toUserId });
-  });
+  // Always notify the sender too
+  socket.emit("call:ended", { fromUserId, toUserId });
+});
 }
