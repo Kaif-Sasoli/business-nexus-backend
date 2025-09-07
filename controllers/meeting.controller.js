@@ -2,6 +2,8 @@ import meetingModel from "../models/meeting.model.js";
 import { validationResult } from "express-validator";
 import Collaboration from "../models/collaboration.model.js";
 import mongoose from "mongoose";
+import { nanoid } from "nanoid";
+
 
 
 export const createMeeting = async (req, res) => {
@@ -11,7 +13,7 @@ export const createMeeting = async (req, res) => {
       return res.status(400).json({ error: errors.array()[0].msg });
     }
 
-    const { participants, title, description, startTime, endTime } = req.body;
+    const { participants, title, description, startTime, endTime, roomUrl } = req.body;
     const organizer = req.user.id;
 
     if (!participants || participants.length === 0) {
@@ -20,7 +22,6 @@ export const createMeeting = async (req, res) => {
         message: "Please select at least one investor to schedule a meeting."
       });
     }
-
 
     const participantObjectIds = participants.map(id => new mongoose.Types.ObjectId(id));
     const organizerObjectId = new mongoose.Types.ObjectId(organizer);
@@ -40,10 +41,8 @@ export const createMeeting = async (req, res) => {
       });
     }
 
-    // Prepare participant array with status
+    // Prepare participants
     const participantArray = participantObjectIds.map(userId => ({ user: userId, status: "pending" }));
-
-    // Organizer auto-accepted
     participantArray.push({ user: organizerObjectId, status: "accepted" });
 
     // Conflict detection
@@ -60,6 +59,9 @@ export const createMeeting = async (req, res) => {
       });
     }
 
+    //  Auto-generate roomId
+    const generatedRoomId = nanoid();
+
     // Create meeting
     const meeting = await meetingModel.create({
       organizer: organizerObjectId,
@@ -67,7 +69,10 @@ export const createMeeting = async (req, res) => {
       title,
       description,
       startTime,
-      endTime
+      endTime,
+      status: "scheduled",
+      roomUrl: roomUrl || null,
+      roomId: generatedRoomId
     });
 
     return res.status(201).json({
@@ -178,8 +183,9 @@ export const getUserMeetings = async (req, res) => {
         { "participants.user": new mongoose.Types.ObjectId(userId) }
       ]
     })
-    .populate("organizer", "name avatar email")
-    .populate("participants.user", "name avatar email");
+      .populate("organizer", "name avatar email")
+      .populate("participants.user", "name avatar email")
+      .sort({ startTime: 1 }); 
 
     const formattedMeetings = meetings.map(meeting => ({
       id: meeting._id,
@@ -188,15 +194,19 @@ export const getUserMeetings = async (req, res) => {
       startTime: meeting.startTime,
       endTime: meeting.endTime,
       status: meeting.status,
+      roomId: meeting.roomId || null,
+      roomUrl: meeting.roomUrl || null,
       organizer: {
         id: meeting.organizer._id,
         name: meeting.organizer.name,
-        avatar: meeting.organizer.avatar
+        avatar: meeting.organizer.avatar,
+        email: meeting.organizer.email
       },
       participants: meeting.participants.map(p => ({
         id: p.user._id,
         name: p.user.name,
         avatar: p.user.avatar,
+        email: p.user.email,
         status: p.status
       }))
     }));
@@ -219,7 +229,6 @@ export const getUserMeetings = async (req, res) => {
 export const cancelMeeting = async (req, res) => {
   try {
 
-    console.log("HItted")
     const userId = req.user.id; 
     const meetingId = req.params.id;
 
@@ -248,5 +257,97 @@ export const cancelMeeting = async (req, res) => {
 };
 
 
+
+  // Start a meeting 
+  export const startMeeting = async (req, res) => {
+  try {
+    const meetingId = req.params.id;
+    const userId = req.user.id;
+
+    const meeting = await meetingModel.findById(meetingId);
+    if (!meeting) {
+      return res.status(404).json({ message: "Meeting not found" });
+    }
+
+    if (meeting.organizer.toString() !== userId) {
+      return res.status(403).json({ message: "Only organizer can start the meeting" });
+    }
+
+    // Mark meeting as live & generate room
+    meeting.status = "live";
+    if (!meeting.roomId) {
+      meeting.roomId = `room_${meetingId}`;
+      meeting.roomUrl = `${process.env.CLIENT_URL}/meeting/${meeting.roomId}`;
+    }
+
+    await meeting.save();
+
+  
+    const io = req.app.get("io");
+    io.to(meetingId.toString()).emit("meeting:started", {
+      meetingId: meeting.id,
+      roomId: meeting.roomId,
+      roomUrl: meeting.roomUrl,
+    });
+
+    return res.status(200).json({
+      message: "Meeting started",
+      meeting,
+    });
+  } catch (error) {
+    console.error("Error starting meeting:", error);
+    return res
+      .status(500)
+      .json({ message: "Failed to start meeting", error: error.message });
+  }
+};
+
+// End a meeting 
+export const endMeeting = async (req, res) => {
+  try {
+    const meetingId = req.params.id;
+    const userId = req.user.id;
+
+    const meeting = await meetingModel.findById(meetingId);
+
+    if (!meeting) {
+      return res.status(404).json({ message: "Meeting not found" });
+    }
+
+    if (meeting.organizer.toString() !== userId) {
+      return res.status(403).json({ message: "Only organizer can end the meeting" });
+    }
+
+    meeting.status = "completed";
+    await meeting.save();
+
+    return res.status(200).json({
+      message: "Meeting ended",
+      meeting,
+    });
+  } catch (error) {
+    console.error("Error ending meeting:", error);
+    return res.status(500).json({ message: "Failed to end meeting", error: error.message });
+  }
+};
+
+// Get meeting details 
+export const getMeetingById = async (req, res) => {
+  try {
+    const meeting = await meetingModel
+      .findById(req.params.id)
+      .populate("organizer", "name avatar")
+      .populate("participants.user", "name avatar");
+
+    if (!meeting) {
+      return res.status(404).json({ message: "Meeting not found" });
+    }
+
+    return res.status(200).json(meeting);
+  } catch (error) {
+    console.error("Error fetching meeting:", error);
+    return res.status(500).json({ message: "Failed to fetch meeting", error: error.message });
+  }
+};
 
 

@@ -1,5 +1,8 @@
 import userModel from '../models/user.model.js'
+import meetingModel from "../models/meeting.model.js";
 import entrepreneurModel from '../models/entrepreneurProfile.model.js';
+import collaborationModel from "../models/collaboration.model.js";
+import dealModel from "../models/deal.model.js";
 
 
 // Create Startup for an existing entrepreneur profile
@@ -228,5 +231,59 @@ export const searchEntrepreneurs = async (req, res) => {
   } catch (error) {
     console.error("❌ Error in searchEntrepreneurs:", error);
     res.status(500).json({ success: false, error: "Server error" });
+  }
+};
+
+
+export const getEntrepreneurDashboard = async (req, res) => {
+  try {
+    const entrepreneurId = req.user.id;
+
+    
+    const [collaborations, deals, meetings] = await Promise.all([
+      // All collabs for this entrepreneur
+      collaborationModel.find({ entrepreneurId })
+        .populate("investorId", "name email avatar")
+        .populate("startupId", "name description industry"),
+
+      // All deals for this entrepreneur
+      dealModel.find({ entrepreneurId })
+        .populate("investorId", "name email avatar")
+        .sort({ createdAt: -1 }),
+
+      // Meetings where entrepreneur is organizer OR participant
+      meetingModel.find({
+        $or: [
+          { organizer: entrepreneurId },
+          { "participants.user": entrepreneurId }
+        ]
+      })
+        .populate("organizer", "name email avatar")
+        .populate("participants.user", "name email avatar")
+        .sort({ startTime: 1 }),
+    ]);
+
+    // Aggregate stats
+    const totalInvestments = deals.reduce((sum, d) => sum + d.amount, 0);
+    const totalInvestors = new Set(deals.map(d => String(d.investorId?._id))).size;
+    const upcomingMeetings = meetings.filter(m => m.startTime > new Date()).length;
+
+    res.json({
+      success: true,
+      data: {
+        collaborationsCount: collaborations.length,
+        dealsCount: deals.length,
+        meetingsCount: meetings.length,
+        totalInvestments,
+        totalInvestors,
+        upcomingMeetings,
+        collaborations,
+        deals,
+        meetings,
+      },
+    });
+  } catch (err) {
+    console.error("Entrepreneur Dashboard Error:", err);
+    res.status(500).json({ error: "Something went wrong: " + err.message });
   }
 };

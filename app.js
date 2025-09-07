@@ -44,6 +44,8 @@ app.use(cors({
 }));
 
 app.use("/webhooks", webhookRouter);
+
+
 app.use(express.json())
 app.use(cookieParser())
 app.use(express.urlencoded({ extended: true }))
@@ -67,8 +69,6 @@ app.use('/document', documentRouter);
 // app.use('/account', accountRouter);
 app.use("/payments", paymentRouter);
 app.use("/investments", investmentRouter);
-
-
 
 
 

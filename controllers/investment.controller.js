@@ -1,9 +1,19 @@
 import UserPayment from "../models/userPayment.model.js";
 import { createCheckoutSession, getStripeAccount } from "../services/stripe.service.js";
 import { createPaypalTransaction } from "../services/paypal.service.js";
+import { validationResult } from "express-validator";
 
 export const investInStartup = async (req, res) => {
   try {
+
+     // Check validation errors first
+           const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+              return res.status(400).json({
+                error: errors.array()[0].msg  
+              });
+            }
+    
 
     const investorId = req.user.id;
     const { entrepreneurId, startupId, startupName, industry, amount, equity, stage, method } = req.body;

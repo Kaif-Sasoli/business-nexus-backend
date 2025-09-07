@@ -52,5 +52,9 @@ router.put("/reject/:id", auth(['investor']), meetingController.rejectMeeting);
 
 router.put("/cancel/:id", auth(['entrepreneur']), meetingController.cancelMeeting);
 
+// new routes for live meeting
+router.put("/start/:id", auth(["entrepreneur"]), meetingController.startMeeting);
+router.put("/end/:id", auth(["entrepreneur"]), meetingController.endMeeting);
+router.get("/:id", auth(["investor", "entrepreneur"]), meetingController.getMeetingById);
 
 export default router;

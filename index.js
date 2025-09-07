@@ -1,9 +1,9 @@
-// server.js
 import http from "http";
 import { Server } from "socket.io";
 import app from "./app.js";
 import chatHandlers from "./sockets/chat.js";
 import videoHandlers from "./sockets/video.js";
+import roomHandlers from "./sockets/roomHandlers.js";
 
 const server = http.createServer(app);
 
@@ -17,16 +17,23 @@ const io = new Server(server, {
 
 const onlineUsers = new Map();
 
+// set io 
+app.set("io", io);
+app.set("onlineUsers", onlineUsers);
+
+app.use((req, res, next) => {
+  req.io = io; 
+  next();
+});
+
 io.on("connection", (socket) => {
   console.log("🟢 User connected:", socket.id);
 
-  // Attach chat socket handlers
+  // Attach socket handlers
   chatHandlers(io, socket, onlineUsers);
   videoHandlers(io, socket, onlineUsers);
+  roomHandlers(io, socket);
 });
-
-app.set("io", io);
-app.set("onlineUsers", onlineUsers);
 
 server.listen(process.env.PORT || 5000, () => {
   console.log(`⚙️ Server running on port ${process.env.PORT || 5000}`);

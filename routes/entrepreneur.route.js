@@ -12,6 +12,11 @@ router.post('/createStartup', auth(['entrepreneur']),
 router.get('/startup/:id',  
 entrepreneurController.getStartupByUserId);
 
+// Entrepreneur dashboard route
+router.get("/", auth(["entrepreneur"]), 
+   entrepreneurController.getEntrepreneurDashboard
+);
+
 
 router.get("/all", entrepreneurController.getAllEntrepreneursWithStartups);
 

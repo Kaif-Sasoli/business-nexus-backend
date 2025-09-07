@@ -20,7 +20,8 @@ const meetingSchema = new mongoose.Schema(
       ref: "User",
       required: true
     },
-    participants: [participantSchema], 
+    participants: [participantSchema],
+
     title: {
       type: String,
       required: true,
@@ -38,11 +39,22 @@ const meetingSchema = new mongoose.Schema(
       type: Date,
       required: true
     },
+
     status: {
       type: String,
-      enum: ["pending", "accepted", "rejected", "cancelled"],
-      default: "pending"
-    }
+      enum: ["scheduled", "live", "completed", "cancelled"],
+      default: "scheduled"
+    },
+
+    roomUrl: {
+      type: String, 
+      default: null
+    },
+    roomId: {
+      type: String, 
+      default: null
+    },
+    
   },
   { timestamps: true }
 );
